@@ -1,0 +1,92 @@
+name: Publish immutable llms.txt Pages release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-llms-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event.release.draft == false &&
+      github.event.release.prerelease == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      RELEASE_ID: ${{ github.event.release.id }}
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+      EVENT_DRAFT: ${{ github.event.release.draft }}
+      EVENT_PRERELEASE: ${{ github.event.release.prerelease }}
+    steps:
+      - name: Check out the exact Release tag
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify the immutable numeric Release and exact tag commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$EVENT_DRAFT" = false
+          test "$EVENT_PRERELEASE" = false
+          [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          release_json="$RUNNER_TEMP/release.json"
+          gh api --hostname github.com --header 'X-GitHub-Api-Version: 2026-03-10' \
+            "/repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" >"$release_json"
+          jq -e --arg id "$RELEASE_ID" --arg tag "$RELEASE_TAG" '
+            (.id | tostring) == $id and
+            (.tag_name | strings | test("^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$")) and
+            .tag_name == $tag and .draft == false and .prerelease == false and
+            .immutable == true and .published_at != null and
+            (.assets | type == "array" and length == 0)
+          ' "$release_json" >/dev/null
+
+          test "$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)" = ""
+          test "$(git cat-file -t "refs/tags/$RELEASE_TAG")" = tag
+          tag_ref_json="$RUNNER_TEMP/tag-ref.json"
+          gh api --hostname github.com --header 'X-GitHub-Api-Version: 2026-03-10' \
+            "/repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" >"$tag_ref_json"
+          tag_object="$(jq -er '.object | select(.type == "tag") | .sha' "$tag_ref_json")"
+          tag_json="$RUNNER_TEMP/tag.json"
+          gh api --hostname github.com --header 'X-GitHub-Api-Version: 2026-03-10' \
+            "/repos/$GITHUB_REPOSITORY/git/tags/$tag_object" >"$tag_json"
+          release_commit="$(jq -er '.object | select(.type == "commit") | .sha' "$tag_json")"
+          test "$release_commit" = "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+          test "$release_commit" = "$(git rev-parse HEAD)"
+
+      - name: Validate and stage only llms.txt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/validate-llms.py llms.txt
+          pages_root="$RUNNER_TEMP/llms-pages-root"
+          install -d -m 0755 "$pages_root"
+          install -m 0644 -- llms.txt "$pages_root/llms.txt"
+          test "$(find "$pages_root" -mindepth 1 -maxdepth 1 -type f -printf '%f\n' | sort)" = "llms.txt"
+          test "$(find "$pages_root" -mindepth 1 -maxdepth 1 | wc -l)" = 1
+
+      - uses: actions/configure-pages@v6.0.0
+
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: ${{ runner.temp }}/llms-pages-root
+
+      - id: deployment
+        uses: actions/deploy-pages@v5.0.0
