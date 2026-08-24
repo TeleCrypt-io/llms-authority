@@ -1,0 +1,71 @@
+# TeleCrypt
+
+TeleCrypt is a private-by-design communication service for human and artificial users. It gives
+each agent a Matrix identity and provides text, media, and file communication without federation
+to other Matrix homeservers.
+
+## Architecture and responsibilities
+
+- Matrix is the communication protocol. Matrix IDs use the `telecrypt.io` server name.
+- Synapse is the Matrix homeserver. It stores and relays Matrix events and serves the authenticated
+  client API. It does not federate room traffic to other homeservers.
+- The Matrix Authentication Service (MAS) provides the OAuth2/OIDC authentication and account
+  session layer. Password login in Synapse is disabled; MAS manages reauthentication and recovery
+  credentials.
+- Controlplane owns public registration, account policy, and the user-facing plan integration.
+- Cashier is the sole authority for paid entitlement. Its entitlement result is projected to the
+  Matrix account capability used by the rest of the service; other components do not reconstruct
+  billing state.
+- Janitor is a one-shot account-maintenance process. It enumerates accounts, checks the
+  Cashier-owned paid-entitlement result, and reversibly locks only stale, unclaimed accounts that
+  are not excluded. It never unlocks, deletes accounts, changes credentials, or repairs another
+  component's state.
+- Media uses one S3-compatible object store as its durable authority. Local disk is disposable
+  upload staging and cache space only; completed media is not durably stored on the service host.
+- The public website presents product information and links to this file. This file is the
+  canonical public description of current architecture, principles, limits, and behavior.
+
+## Security and privacy
+
+End-to-end encryption is performed by Matrix clients. In an encrypted room, the homeserver stores
+and relays ciphertext; it does not receive the plaintext or the client-held encryption keys. An
+unencrypted room can contain message bodies that the homeserver can process.
+
+The service disables federation, remote-media caching, and URL-preview media storage. Media is
+accepted only after account and quota checks, written to the durable object store, and removed
+from temporary staging after a successful commit. The service does not operate a Matrix key-backup
+service; clients remain responsible for their encryption keys and recovery.
+
+Each component receives only the credentials and network access needed for its responsibility.
+Authentication, paid entitlement, account maintenance, Matrix storage, and public registration
+remain separate boundaries. A failed invariant stops the affected operation and is reported rather
+than silently converted into another state.
+
+## Current plans and limits
+
+- Accounts start with restricted capabilities.
+- The default or unpaid plan has no media-storage allowance. It cannot upload media, enable room
+  encryption, or create more than three rooms.
+- The single paid plan is listed at 15 EUR per seat. A currently verified paid account may upload
+  media and use room encryption.
+- The maximum individual file size is 128 MiB (134,217,728 bytes).
+- The paid account storage quota is 50 GiB (53,687,091,200 bytes) of the user's original local
+  media. Generated thumbnails and temporary staging files are service overhead and are not extra
+  user quota.
+- Upload admission is serialized per user through the complete object-store write and metadata
+  commit. A quota or storage uncertainty rejects the upload.
+- Only the fixed service thumbnail sizes are supported; clients cannot request arbitrary dynamic
+  thumbnail sizes.
+- A user may request physical deletion of owned local media. Deletion resolves the service's own
+  media records and object keys; clients do not submit storage keys. Missing media is already
+  deleted, ownership failures do not disclose another user's data, and provider failures leave
+  the database state retryable.
+- Users can export the Matrix data and media readable by their authenticated account and device.
+  Encrypted events and media remain ciphertext unless the local client has the corresponding keys.
+- Stale, unclaimed accounts are reversibly locked according to the service's account-maintenance
+  policy. Locking is not deletion, and Janitor never unlocks an account.
+
+## Product principle
+
+TeleCrypt keeps the smallest understandable system: each component owns one kind of state, uses
+the authority that owns every business fact, and fails loudly when an invariant is violated.

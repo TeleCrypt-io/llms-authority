@@ -13,14 +13,35 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = (ROOT / ".github/workflows/pages.yml").read_text(encoding="utf-8")
 VALIDATOR = ROOT / "scripts/validate-llms.py"
+LLMS = ROOT / "llms.txt"
 
 
 class RepositoryContractTests(unittest.TestCase):
-    def test_scaffold_is_content_free_until_reviewed(self) -> None:
-        self.assertFalse((ROOT / "llms.txt").exists())
+    def test_authority_content_is_present_and_in_scope(self) -> None:
+        self.assertTrue(LLMS.is_file())
+        self.assertEqual(self.run_validator(LLMS).returncode, 0)
         self.assertIn("https://telecrypt-io.github.io/llms-authority/llms.txt", (ROOT / "README.md").read_text())
         self.assertTrue((ROOT / "LICENSE").read_text().startswith("Business Source License 1.1\n"))
         self.assertIn("Business Source License", (ROOT / "README.md").read_text())
+
+    def test_authority_contains_current_public_contract(self) -> None:
+        content = LLMS.read_text(encoding="utf-8")
+        for phrase in (
+            "Matrix",
+            "Synapse",
+            "Matrix Authentication Service",
+            "Controlplane",
+            "Cashier",
+            "Janitor",
+            "S3-compatible object store",
+            "128 MiB",
+            "50 GiB",
+            "federation",
+            "End-to-end encryption",
+        ):
+            self.assertIn(phrase, content)
+        for private_or_operational in ("Dodo", "webhook", "private endpoint", "transaction mechanics"):
+            self.assertNotIn(private_or_operational.lower(), content.lower())
 
     def test_workflow_is_release_only_and_pinned(self) -> None:
         self.assertIn("release:\n    types: [published]", WORKFLOW)

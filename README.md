@@ -4,8 +4,7 @@ This repository will publish TeleCrypt's single canonical public `llms.txt` thro
 
 <https://telecrypt-io.github.io/llms-authority/llms.txt>
 
-The file is intentionally absent until its reviewed public content is ready. Do not add a
-placeholder to make a local build appear complete. The Pages workflow refuses a missing or invalid
+The reviewed public content lives in `llms.txt`. The Pages workflow refuses a missing or invalid
 file and deploys only that file from the exact immutable Release tag commit.
 
 The repository is source-only and uses the Business Source License 1.1. Releases use exact
