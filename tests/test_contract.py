@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -70,6 +71,33 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("python3 scripts/validate-llms.py llms.txt", WORKFLOW)
         self.assertIn("install -m 0644 -- llms.txt", WORKFLOW)
         self.assertIn("path: ${{ runner.temp }}/llms-pages-root", WORKFLOW)
+
+    def test_pages_predicate_rejects_release_name_mismatch(self) -> None:
+        marker = 'jq -e --arg id "$RELEASE_ID" --arg tag "$RELEASE_TAG" \'\n'
+        start = WORKFLOW.index(marker) + len(marker)
+        end = WORKFLOW.index("' \"$release_json\"", start)
+        predicate = WORKFLOW[start:end]
+        release = {
+            "id": 123,
+            "tag_name": "v1.0.0",
+            "name": "v1.0.0",
+            "draft": False,
+            "prerelease": False,
+            "immutable": True,
+            "published_at": "2026-08-25T00:00:00Z",
+            "assets": [],
+        }
+        for name, expected in (("v1.0.0", True), ("wrong-name", False)):
+            with self.subTest(name=name):
+                candidate = {**release, "name": name}
+                result = subprocess.run(
+                    ["jq", "-e", "--arg", "id", "123", "--arg", "tag", "v1.0.0", predicate],
+                    input=json.dumps(candidate),
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode == 0, expected, result.stderr)
 
     def run_validator(self, path: Path) -> subprocess.CompletedProcess[str]:
         env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
