@@ -72,6 +72,32 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("install -m 0644 -- llms.txt", WORKFLOW)
         self.assertIn("path: ${{ runner.temp }}/llms-pages-root", WORKFLOW)
 
+    def test_checkout_scopes_git_init_default_branch(self) -> None:
+        start = WORKFLOW.index("      - name: Check out the exact Release tag")
+        end = WORKFLOW.index("      - name: Verify the immutable numeric Release", start)
+        checkout_step = WORKFLOW[start:end]
+        self.assertIn(
+            '        env:\n'
+            '          GIT_CONFIG_COUNT: "1"\n'
+            '          GIT_CONFIG_KEY_0: init.defaultBranch\n'
+            '          GIT_CONFIG_VALUE_0: main\n',
+            checkout_step,
+        )
+        self.assertEqual(WORKFLOW.count("GIT_CONFIG_COUNT:"), 1)
+        self.assertNotIn("GIT_CONFIG_GLOBAL", checkout_step)
+        self.assertNotIn("GIT_CONFIG_SYSTEM", checkout_step)
+
+    def test_node_deprecation_suppression_is_deploy_step_scoped(self) -> None:
+        start = WORKFLOW.index("      - id: deployment")
+        deploy_step = WORKFLOW[start:]
+        self.assertIn(
+            "        env:\n"
+            "          NODE_OPTIONS: --no-deprecation\n",
+            deploy_step,
+        )
+        self.assertEqual(WORKFLOW.count("NODE_OPTIONS:"), 1)
+        self.assertNotIn("NODE_OPTIONS", WORKFLOW[:start])
+
     def test_pages_predicate_rejects_release_name_mismatch(self) -> None:
         marker = 'jq -e --arg id "$RELEASE_ID" --arg tag "$RELEASE_TAG" \'\n'
         start = WORKFLOW.index(marker) + len(marker)

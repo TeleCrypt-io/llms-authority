@@ -33,6 +33,10 @@ jobs:
     steps:
       - name: Check out the exact Release tag
         uses: actions/checkout@v7.0.1
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: init.defaultBranch
+          GIT_CONFIG_VALUE_0: main
         with:
           ref: ${{ github.event.release.tag_name }}
           fetch-depth: 0
@@ -90,3 +94,5 @@ jobs:
 
       - id: deployment
         uses: actions/deploy-pages@v5.0.0
+        env:
+          NODE_OPTIONS: --no-deprecation
