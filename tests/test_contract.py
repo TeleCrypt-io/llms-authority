@@ -49,6 +49,7 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("github.event.release.draft == false", WORKFLOW)
         self.assertIn("github.event.release.prerelease == false", WORKFLOW)
         self.assertIn(".immutable == true", WORKFLOW)
+        self.assertIn(".name == $tag", WORKFLOW)
         self.assertIn(
             r"^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$",
             WORKFLOW,

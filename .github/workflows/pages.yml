@@ -53,7 +53,7 @@ jobs:
           jq -e --arg id "$RELEASE_ID" --arg tag "$RELEASE_TAG" '
             (.id | tostring) == $id and
             (.tag_name | strings | test("^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$")) and
-            .tag_name == $tag and .draft == false and .prerelease == false and
+            .tag_name == $tag and .name == $tag and .draft == false and .prerelease == false and
             .immutable == true and .published_at != null and
             (.assets | type == "array" and length == 0)
           ' "$release_json" >/dev/null
