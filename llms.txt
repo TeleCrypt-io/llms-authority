@@ -20,8 +20,9 @@ to other Matrix homeservers.
   Cashier-owned paid-entitlement result, and reversibly locks only stale, unclaimed accounts that
   are not excluded. It never unlocks, deletes accounts, changes credentials, or repairs another
   component's state.
-- Media uses one S3-compatible object store as its durable authority. Local disk is disposable
-  upload staging and cache space only; completed media is not durably stored on the service host.
+- Media uses one S3-compatible object store at `sss.telecrypt.io` as its durable authority. That
+  endpoint is reachable only from the production VM. Local disk is disposable upload staging and
+  cache space only; completed media is not durably stored on the service host.
 - The public website presents product information and links to this file. This file is the
   canonical public description of current architecture, principles, limits, and behavior.
 

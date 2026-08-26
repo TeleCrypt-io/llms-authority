@@ -35,6 +35,8 @@ class RepositoryContractTests(unittest.TestCase):
             "Cashier",
             "Janitor",
             "S3-compatible object store",
+            "sss.telecrypt.io",
+            "reachable only from the production VM",
             "128 MiB",
             "50 GiB",
             "federation",
