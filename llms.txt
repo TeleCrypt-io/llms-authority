@@ -21,8 +21,8 @@ to other Matrix homeservers.
   are not excluded. It never unlocks, deletes accounts, changes credentials, or repairs another
   component's state.
 - Media uses one S3-compatible object store at `sss.telecrypt.io` as its durable authority. That
-  endpoint is reachable only from the production VM. Local disk is disposable upload staging and
-  cache space only; completed media is not durably stored on the service host.
+  endpoint is reachable only from the production and stage service VMs. Local disk is disposable
+  upload staging and cache space only; completed media is not durably stored on either service host.
 - The public website presents product information and links to this file. This file is the
   canonical public description of current architecture, principles, limits, and behavior.
 

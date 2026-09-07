@@ -36,7 +36,7 @@ class RepositoryContractTests(unittest.TestCase):
             "Janitor",
             "S3-compatible object store",
             "sss.telecrypt.io",
-            "reachable only from the production VM",
+            "reachable only from the production and stage service VMs",
             "128 MiB",
             "50 GiB",
             "federation",
