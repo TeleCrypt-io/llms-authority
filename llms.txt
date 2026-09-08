@@ -20,9 +20,11 @@ to other Matrix homeservers.
   Cashier-owned paid-entitlement result, and reversibly locks only stale, unclaimed accounts that
   are not excluded. It never unlocks, deletes accounts, changes credentials, or repairs another
   component's state.
-- Media uses one S3-compatible object store at `sss.telecrypt.io` as its durable authority. That
-  endpoint is reachable only from the production and stage service VMs. Local disk is disposable
-  upload staging and cache space only; completed media is not durably stored on either service host.
+- Cashier and Janitor reach the shared PostgreSQL database directly from the selected Linux
+  service VM; the database is never exposed or tunneled to the operator workspace.
+- Media uses one S3-compatible object store as its durable authority. It is reachable only from the
+  production and stage service VMs. Local disk is disposable upload staging and cache space only;
+  completed media is not durably stored on either service host.
 - The public website presents product information and links to this file. This file is the
   canonical public description of current architecture, principles, limits, and behavior.
 
@@ -34,8 +36,9 @@ unencrypted room can contain message bodies that the homeserver can process.
 
 The service disables federation, remote-media caching, and URL-preview media storage. Media is
 accepted only after account and quota checks, written to the durable object store, and removed
-from temporary staging after a successful commit. The service does not operate a Matrix key-backup
-service; clients remain responsible for their encryption keys and recovery.
+from temporary staging after a successful commit. Matrix Secure Backup stores encrypted key
+material server-side for device recovery; the Recovery Key remains client-held and is required to
+decrypt and restore that material on another device.
 
 Each component receives only the credentials and network access needed for its responsibility.
 Authentication, paid entitlement, account maintenance, Matrix storage, and public registration
@@ -70,3 +73,19 @@ than silently converted into another state.
 
 TeleCrypt keeps the smallest understandable system: each component owns one kind of state, uses
 the authority that owns every business fact, and fails loudly when an invariant is violated.
+
+Every caller must honor the called component's success and failure contract. Required work must
+complete successfully before dependent work continues or completion is reported. Failures propagate
+with useful context; callers do not invent successful or empty results or repair another component's
+state. Cleanup failures remain visible alongside the original failure. Optional outcomes, retries,
+and recovery follow explicit contracts at their named owner, with retries limited to operations
+known to be safe. Existing error contracts are reused without redundant verification or speculative
+failure machinery. The Storage SDK owns Storage behavior; the Web interface is a thin GUI that
+renders SDK results and surfaces failures.
+
+Diagnostics are retained completely after credentials and customer data are redacted. Logs,
+errors, stdout, stderr, and diagnostic command or API responses are not capped, truncated,
+discarded, or rejected because of their size. A deadline may stop an operation, but every
+diagnostic byte produced before and during termination is retained. Declared limits on requests,
+uploads, non-diagnostic product or release artifacts, and other product inputs remain separate
+from diagnostic output.

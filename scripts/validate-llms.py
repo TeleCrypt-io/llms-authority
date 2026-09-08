@@ -19,11 +19,11 @@ MAX_LINES = 4096
 VERSION = re.compile(r"^# TeleCrypt(?:\s|$)", re.IGNORECASE)
 
 # These patterns identify concrete operational material, not broad vocabulary. Public principles
-# may discuss passwords, credentials, webhooks, or payment boundaries without exposing a value or
-# endpoint. A future document may also name a component without describing its private mechanics.
+# may discuss passwords, credentials, webhooks, payment boundaries, and public service endpoints
+# without exposing a secret or detailed finance mechanics.
 FORBIDDEN_PATTERNS = (
     re.compile(r"\b(?:test\.)?(?:checkout|customer)\.dodopayments\.com\b", re.I),
-    re.compile(r"\b(?:backend|storage)(?:\.stage)?\.telecrypt\.io\b", re.I),
+    re.compile(r"\bsss\.telecrypt\.io\b", re.I),
     re.compile(
         r"\b(?:api[_ -]?key|access[_ -]?token|password|credential)\s*[:=]\s*"
         r"(?:[A-Za-z0-9_-]{24,}|[A-Za-z0-9+/]{24,}={0,2})\b",

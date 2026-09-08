@@ -1,11 +1,12 @@
 # TeleCrypt public LLM authority
 
-This repository will publish TeleCrypt's single canonical public `llms.txt` through GitHub Pages:
+This repository publishes TeleCrypt's single canonical public `llms.txt` at:
 
-<https://telecrypt-io.github.io/llms-authority/llms.txt>
+<https://telecrypt.io/llms.txt>
 
 The reviewed public content lives in `llms.txt`. The Pages workflow refuses a missing or invalid
-file and deploys only that file from the exact immutable Release tag commit.
+file and deploys only that file from the exact immutable Release tag commit. GitHub Pages is the
+delivery mechanism, not a second public authority.
 
 The repository is source-only and uses the Business Source License 1.1. Releases use exact
 numeric tags such as `v1.2.3`, are published without assets, and are eligible for Pages only after

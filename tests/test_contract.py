@@ -21,26 +21,28 @@ class RepositoryContractTests(unittest.TestCase):
     def test_authority_content_is_present_and_in_scope(self) -> None:
         self.assertTrue(LLMS.is_file())
         self.assertEqual(self.run_validator(LLMS).returncode, 0)
-        self.assertIn("https://telecrypt-io.github.io/llms-authority/llms.txt", (ROOT / "README.md").read_text())
+        self.assertIn("https://telecrypt.io/llms.txt", (ROOT / "README.md").read_text())
         self.assertTrue((ROOT / "LICENSE").read_text().startswith("Business Source License 1.1\n"))
         self.assertIn("Business Source License", (ROOT / "README.md").read_text())
 
     def test_authority_contains_current_public_contract(self) -> None:
         content = LLMS.read_text(encoding="utf-8")
         for phrase in (
-            "Matrix",
-            "Synapse",
-            "Matrix Authentication Service",
-            "Controlplane",
-            "Cashier",
-            "Janitor",
-            "S3-compatible object store",
-            "sss.telecrypt.io",
-            "reachable only from the production and stage service VMs",
-            "128 MiB",
-            "50 GiB",
-            "federation",
-            "End-to-end encryption",
+            "TeleCrypt is a private-by-design communication service",
+            "Matrix is the communication protocol",
+            "Synapse is the Matrix homeserver",
+            "The Matrix Authentication Service (MAS) provides the OAuth2/OIDC authentication",
+            "Controlplane owns public registration, account policy, and the user-facing plan integration.",
+            "Cashier is the sole authority for paid entitlement.",
+            "Janitor is a one-shot account-maintenance process.",
+            "Cashier and Janitor reach the shared PostgreSQL database directly from the selected Linux",
+            "Media uses one S3-compatible object store as its durable authority.",
+            "End-to-end encryption is performed by Matrix clients.",
+            "The maximum individual file size is 128 MiB (134,217,728 bytes).",
+            "The paid account storage quota is 50 GiB (53,687,091,200 bytes)",
+            "Every caller must honor the called component's success and failure contract.",
+            "The Storage SDK owns Storage behavior; the Web interface is a thin GUI",
+            "Diagnostics are retained completely after credentials and customer data are redacted.",
         ):
             self.assertIn(phrase, content)
         for private_or_operational in ("Dodo", "webhook", "private endpoint", "transaction mechanics"):
@@ -60,12 +62,20 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("ref: ${{ github.event.release.tag_name }}", WORKFLOW)
         self.assertIn('git cat-file -t "refs/tags/$RELEASE_TAG"', WORKFLOW)
         self.assertIn('test "$release_commit" = "$(git rev-parse HEAD)"', WORKFLOW)
+        self.assertIn('if symbolic_ref="$(git symbolic-ref --short HEAD)"; then', WORKFLOW)
+        self.assertIn('if test "$symbolic_ref_status" -ne 1; then', WORKFLOW)
+        self.assertIn('cat -- "$release_json" >&2', WORKFLOW)
+        self.assertIn('cat -- "$tag_ref_json" >&2', WORKFLOW)
+        self.assertIn('cat -- "$tag_json" >&2', WORKFLOW)
+        self.assertNotIn('git symbolic-ref --quiet', WORKFLOW)
+        self.assertNotIn('git symbolic-ref --short HEAD 2>/dev/null', WORKFLOW)
+        self.assertNotIn('git symbolic-ref --quiet --short HEAD 2>/dev/null || true', WORKFLOW)
         self.assertNotRegex(WORKFLOW, r"refs/heads/main|ref:\s*main|github\.sha")
         for action in (
             "actions/checkout@v7.0.1",
             "actions/configure-pages@v6.0.0",
             "actions/upload-pages-artifact@v5.0.0",
-            "actions/deploy-pages@v5.0.0",
+            "actions/deploy-pages@v5.0.1",
         ):
             self.assertIn(action, WORKFLOW)
         self.assertIn("pages: write", WORKFLOW)
@@ -73,32 +83,6 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertIn("python3 scripts/validate-llms.py llms.txt", WORKFLOW)
         self.assertIn("install -m 0644 -- llms.txt", WORKFLOW)
         self.assertIn("path: ${{ runner.temp }}/llms-pages-root", WORKFLOW)
-
-    def test_checkout_scopes_git_init_default_branch(self) -> None:
-        start = WORKFLOW.index("      - name: Check out the exact Release tag")
-        end = WORKFLOW.index("      - name: Verify the immutable numeric Release", start)
-        checkout_step = WORKFLOW[start:end]
-        self.assertIn(
-            '        env:\n'
-            '          GIT_CONFIG_COUNT: "1"\n'
-            '          GIT_CONFIG_KEY_0: init.defaultBranch\n'
-            '          GIT_CONFIG_VALUE_0: main\n',
-            checkout_step,
-        )
-        self.assertEqual(WORKFLOW.count("GIT_CONFIG_COUNT:"), 1)
-        self.assertNotIn("GIT_CONFIG_GLOBAL", checkout_step)
-        self.assertNotIn("GIT_CONFIG_SYSTEM", checkout_step)
-
-    def test_node_deprecation_suppression_is_deploy_step_scoped(self) -> None:
-        start = WORKFLOW.index("      - id: deployment")
-        deploy_step = WORKFLOW[start:]
-        self.assertIn(
-            "        env:\n"
-            "          NODE_OPTIONS: --no-deprecation\n",
-            deploy_step,
-        )
-        self.assertEqual(WORKFLOW.count("NODE_OPTIONS:"), 1)
-        self.assertNotIn("NODE_OPTIONS", WORKFLOW[:start])
 
     def test_pages_predicate_rejects_release_name_mismatch(self) -> None:
         marker = 'jq -e --arg id "$RELEASE_ID" --arg tag "$RELEASE_TAG" \'\n'
@@ -157,7 +141,7 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertNotEqual(missing.returncode, 0)
             for content in (
                 "# TeleCrypt\n\nProvider endpoint: https://test.checkout.dodopayments.com/session.\n",
-                "# TeleCrypt\n\nPrivate endpoint: https://backend.telecrypt.io.\n",
+                "# TeleCrypt\n\nPrivate endpoint: https://sss.telecrypt.io.\n",
                 "# TeleCrypt\n\napi_key=sk_test_1234567890abcdefghijklmnop\n",
                 "# TeleCrypt\n\nCard number: 4111 1111 1111 1111\n",
                 "# TeleCrypt\n\nCVV: 123\n",
