@@ -30,3 +30,9 @@ system, or operational procedure here.
   read-only source/release inspection and Pages deployment.
 
 Run the offline contract tests with `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests`.
+That validator is this repository's local test suite; release verification above remains required.
+Private Harness owns the
+development-through-stage workflow, including sibling unit checks, the existing local functional/e2e
+checks, exact release publication, stage acceptance, failure investigation, and the separate production
+decision. Do not copy those operational procedures or private test details into this repository or
+`llms.txt`.
