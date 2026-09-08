@@ -10,8 +10,8 @@ to other Matrix homeservers.
 - Synapse is the Matrix homeserver. It stores and relays Matrix events and serves the authenticated
   client API. It does not federate room traffic to other homeservers.
 - The Matrix Authentication Service (MAS) provides the OAuth2/OIDC authentication and account
-  session layer. Password login in Synapse is disabled; MAS manages reauthentication and recovery
-  credentials.
+  session layer. Password login in Synapse is disabled; MAS manages passwords for hosted registration
+  and reauthentication. Email password recovery is currently unavailable.
 - Controlplane owns public registration, account policy, and the user-facing plan integration.
 - Cashier is the sole authority for paid entitlement. Its entitlement result is projected to the
   Matrix account capability used by the rest of the service; other components do not reconstruct
