@@ -11,6 +11,11 @@ concurrency:
   group: pages-llms-${{ github.event.release.tag_name }}
   cancel-in-progress: false
 
+env:
+  GIT_CONFIG_COUNT: "1"
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
+
 jobs:
   deploy:
     if: >-
