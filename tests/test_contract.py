@@ -123,7 +123,7 @@ class RepositoryContractTests(unittest.TestCase):
         )
 
     def test_validator_accepts_minimal_public_content(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="llms-authority-test-") as directory:
+        with tempfile.TemporaryDirectory(delete=False, prefix="llms-authority-test-") as directory:
             candidate = Path(directory) / "llms.txt"
             candidate.write_text(
                 "# TeleCrypt\n\n"
@@ -135,7 +135,7 @@ class RepositoryContractTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_validator_rejects_missing_or_private_content(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="llms-authority-test-") as directory:
+        with tempfile.TemporaryDirectory(delete=False, prefix="llms-authority-test-") as directory:
             base = Path(directory)
             missing = self.run_validator(base / "missing.txt")
             self.assertNotEqual(missing.returncode, 0)
