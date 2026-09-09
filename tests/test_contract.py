@@ -75,9 +75,19 @@ class RepositoryContractTests(unittest.TestCase):
             "actions/checkout@v7.0.1",
             "actions/configure-pages@v6.0.0",
             "actions/upload-pages-artifact@v5.0.0",
-            "actions/deploy-pages@v5.0.1",
+            "TeleCrypt-io/storage.telecrypt.io/.github/actions/deploy-pages@pages-deploy-v1.0.0",
         ):
             self.assertIn(action, WORKFLOW)
+        self.assertNotIn("uses: actions/deploy-pages@", WORKFLOW)
+        upload = WORKFLOW.index("id: pages-upload")
+        deploy = WORKFLOW.index(
+            "TeleCrypt-io/storage.telecrypt.io/.github/actions/deploy-pages@pages-deploy-v1.0.0"
+        )
+        self.assertLess(upload, deploy)
+        self.assertIn("id: verified-source", WORKFLOW)
+        self.assertIn("printf 'commit=%s\\n' \"$(git rev-parse HEAD)\" >>\"$GITHUB_OUTPUT\"", WORKFLOW)
+        self.assertIn("artifact-id: ${{ steps.pages-upload.outputs.artifact_id }}", WORKFLOW)
+        self.assertIn("build-version: ${{ steps.verified-source.outputs.commit }}", WORKFLOW)
         self.assertIn("pages: write", WORKFLOW)
         self.assertIn("id-token: write", WORKFLOW)
         self.assertIn("python3 scripts/validate-llms.py llms.txt", WORKFLOW)

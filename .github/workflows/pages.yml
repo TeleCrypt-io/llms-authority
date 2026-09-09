@@ -123,6 +123,7 @@ jobs:
           test "$release_commit" = "$(git rev-parse HEAD)"
 
       - name: Validate and stage only llms.txt
+        id: verified-source
         shell: bash
         run: |
           set -euo pipefail
@@ -132,12 +133,17 @@ jobs:
           install -m 0644 -- llms.txt "$pages_root/llms.txt"
           test "$(find "$pages_root" -mindepth 1 -maxdepth 1 -type f -printf '%f\n' | sort)" = "llms.txt"
           test "$(find "$pages_root" -mindepth 1 -maxdepth 1 | wc -l)" = 1
+          printf 'commit=%s\n' "$(git rev-parse HEAD)" >>"$GITHUB_OUTPUT"
 
       - uses: actions/configure-pages@v6.0.0
 
-      - uses: actions/upload-pages-artifact@v5.0.0
+      - id: pages-upload
+        uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: ${{ runner.temp }}/llms-pages-root
 
       - id: deployment
-        uses: actions/deploy-pages@v5.0.1
+        uses: TeleCrypt-io/storage.telecrypt.io/.github/actions/deploy-pages@pages-deploy-v1.0.0
+        with:
+          artifact-id: ${{ steps.pages-upload.outputs.artifact_id }}
+          build-version: ${{ steps.verified-source.outputs.commit }}
