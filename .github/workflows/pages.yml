@@ -75,7 +75,7 @@ jobs:
             exit "$status"
           fi
 
-          if symbolic_ref="$(git symbolic-ref --short HEAD)"; then
+          if symbolic_ref="$(git symbolic-ref --quiet --short HEAD)"; then
             printf 'checkout unexpectedly points to branch %s\n' "$symbolic_ref" >&2
             exit 1
           else
