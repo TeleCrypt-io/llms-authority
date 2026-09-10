@@ -56,6 +56,9 @@ than silently converted into another state.
 - The paid account storage quota is 50 GiB (53,687,091,200 bytes) of the user's original local
   media. Generated thumbnails and temporary staging files are service overhead and are not extra
   user quota.
+- Production deliberately uses finite Synapse message and room-creation throttles and a finite MAS
+  registration throttle. Stage deliberately sets those rates extremely high so acceptance tests run
+  as fast as the services allow instead of waiting for production pacing.
 - Upload admission is serialized per user through the complete object-store write and metadata
   commit. A quota or storage uncertainty rejects the upload.
 - Only the fixed service thumbnail sizes are supported; clients cannot request arbitrary dynamic
