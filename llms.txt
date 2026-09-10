@@ -66,8 +66,8 @@ than silently converted into another state.
   the database state retryable.
 - Users can export the Matrix data and media readable by their authenticated account and device.
   Encrypted events and media remain ciphertext unless the local client has the corresponding keys.
-- Stale, unclaimed accounts are reversibly locked according to the service's account-maintenance
-  policy. Locking is not deletion, and Janitor never unlocks an account.
+- Stale accounts are reversibly locked once they have remained unclaimed for 48 hours. Locking is
+  not deletion, and Janitor never unlocks an account.
 
 ## Product principle
 
