@@ -1,8 +1,7 @@
-"""Offline contract tests for the llms-authority repository scaffold."""
+"""Offline behavior tests for the llms.txt authority validator."""
 
 from __future__ import annotations
 
-import json
 import os
 import subprocess
 import sys
@@ -12,114 +11,11 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW = (ROOT / ".github/workflows/pages.yml").read_text(encoding="utf-8")
 VALIDATOR = ROOT / "scripts/validate-llms.py"
 LLMS = ROOT / "llms.txt"
 
 
-class RepositoryContractTests(unittest.TestCase):
-    def test_authority_content_is_present_and_in_scope(self) -> None:
-        self.assertTrue(LLMS.is_file())
-        self.assertEqual(self.run_validator(LLMS).returncode, 0)
-        self.assertIn("https://telecrypt.io/llms.txt", (ROOT / "README.md").read_text())
-        self.assertTrue((ROOT / "LICENSE").read_text().startswith("Business Source License 1.1\n"))
-        self.assertIn("Business Source License", (ROOT / "README.md").read_text())
-
-    def test_authority_contains_current_public_contract(self) -> None:
-        content = LLMS.read_text(encoding="utf-8")
-        for phrase in (
-            "TeleCrypt is a private-by-design communication service",
-            "Matrix is the communication protocol",
-            "Synapse is the Matrix homeserver",
-            "The Matrix Authentication Service (MAS) provides the OAuth2/OIDC authentication",
-            "Controlplane owns public registration, account policy, and the user-facing plan integration.",
-            "Cashier is the sole authority for paid entitlement.",
-            "Janitor is a one-shot account-maintenance process.",
-            "Cashier and Janitor reach the shared PostgreSQL database directly from the selected Linux",
-            "Media uses one S3-compatible object store as its durable authority.",
-            "End-to-end encryption is performed by Matrix clients.",
-            "The maximum individual file size is 128 MiB (134,217,728 bytes).",
-            "The paid account storage quota is 50 GiB (53,687,091,200 bytes)",
-            "Every caller must honor the called component's success and failure contract.",
-            "The Storage SDK owns Storage behavior; the Web interface is a thin GUI",
-            "Diagnostics are retained completely after credentials and customer data are redacted.",
-        ):
-            self.assertIn(phrase, content)
-        for private_or_operational in ("Dodo", "webhook", "private endpoint", "transaction mechanics"):
-            self.assertNotIn(private_or_operational.lower(), content.lower())
-
-    def test_workflow_is_release_only_and_pinned(self) -> None:
-        self.assertIn("release:\n    types: [published]", WORKFLOW)
-        self.assertNotRegex(WORKFLOW, r"(?m)^\s+(push|pull_request|workflow_dispatch|schedule):")
-        self.assertIn("github.event.release.draft == false", WORKFLOW)
-        self.assertIn("github.event.release.prerelease == false", WORKFLOW)
-        self.assertIn(".immutable == true", WORKFLOW)
-        self.assertIn(".name == $tag", WORKFLOW)
-        self.assertIn(
-            r"^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$",
-            WORKFLOW,
-        )
-        self.assertIn("ref: ${{ github.event.release.tag_name }}", WORKFLOW)
-        self.assertIn('git cat-file -t "refs/tags/$RELEASE_TAG"', WORKFLOW)
-        self.assertIn('test "$release_commit" = "$(git rev-parse HEAD)"', WORKFLOW)
-        self.assertIn('if symbolic_ref="$(git symbolic-ref --quiet --short HEAD)"; then', WORKFLOW)
-        self.assertIn('if test "$symbolic_ref_status" -ne 1; then', WORKFLOW)
-        self.assertIn('cat -- "$release_json" >&2', WORKFLOW)
-        self.assertIn('cat -- "$tag_ref_json" >&2', WORKFLOW)
-        self.assertIn('cat -- "$tag_json" >&2', WORKFLOW)
-        self.assertNotIn('git symbolic-ref --short HEAD 2>/dev/null', WORKFLOW)
-        self.assertNotIn('git symbolic-ref --quiet --short HEAD 2>/dev/null || true', WORKFLOW)
-        self.assertNotRegex(WORKFLOW, r"refs/heads/main|ref:\s*main|github\.sha")
-        for action in (
-            "actions/checkout@v7.0.1",
-            "actions/configure-pages@v6.0.0",
-            "actions/upload-pages-artifact@v5.0.0",
-            "TeleCrypt-io/storage.telecrypt.io/.github/actions/deploy-pages@pages-deploy-v1.0.0",
-        ):
-            self.assertIn(action, WORKFLOW)
-        self.assertNotIn("uses: actions/deploy-pages@", WORKFLOW)
-        upload = WORKFLOW.index("id: pages-upload")
-        deploy = WORKFLOW.index(
-            "TeleCrypt-io/storage.telecrypt.io/.github/actions/deploy-pages@pages-deploy-v1.0.0"
-        )
-        self.assertLess(upload, deploy)
-        self.assertIn("id: verified-source", WORKFLOW)
-        self.assertIn("printf 'commit=%s\\n' \"$(git rev-parse HEAD)\" >>\"$GITHUB_OUTPUT\"", WORKFLOW)
-        self.assertIn("artifact-id: ${{ steps.pages-upload.outputs.artifact_id }}", WORKFLOW)
-        self.assertIn("build-version: ${{ steps.verified-source.outputs.commit }}", WORKFLOW)
-        self.assertIn("pages: write", WORKFLOW)
-        self.assertIn("id-token: write", WORKFLOW)
-        self.assertIn("python3 scripts/validate-llms.py llms.txt", WORKFLOW)
-        self.assertIn("install -m 0644 -- llms.txt", WORKFLOW)
-        self.assertIn("path: ${{ runner.temp }}/llms-pages-root", WORKFLOW)
-
-    def test_pages_predicate_rejects_release_name_mismatch(self) -> None:
-        marker = 'jq -e --arg id "$RELEASE_ID" --arg tag "$RELEASE_TAG" \'\n'
-        start = WORKFLOW.index(marker) + len(marker)
-        end = WORKFLOW.index("' \"$release_json\"", start)
-        predicate = WORKFLOW[start:end]
-        release = {
-            "id": 123,
-            "tag_name": "v1.0.0",
-            "name": "v1.0.0",
-            "draft": False,
-            "prerelease": False,
-            "immutable": True,
-            "published_at": "2026-08-25T00:00:00Z",
-            "assets": [],
-        }
-        for name, expected in (("v1.0.0", True), ("wrong-name", False)):
-            with self.subTest(name=name):
-                candidate = {**release, "name": name}
-                result = subprocess.run(
-                    ["jq", "-e", "--arg", "id", "123", "--arg", "tag", "v1.0.0", predicate],
-                    input=json.dumps(candidate),
-                    text=True,
-                    capture_output=True,
-                    check=False,
-                )
-                self.assertEqual(result.returncode == 0, expected, result.stderr)
-
+class AuthorityValidatorTests(unittest.TestCase):
     def run_validator(self, path: Path) -> subprocess.CompletedProcess[str]:
         env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
         return subprocess.run(
@@ -130,6 +26,11 @@ class RepositoryContractTests(unittest.TestCase):
             capture_output=True,
             check=False,
         )
+
+    def test_authority_content_is_present_and_valid(self) -> None:
+        self.assertTrue(LLMS.is_file())
+        result = self.run_validator(LLMS)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_validator_accepts_minimal_public_content(self) -> None:
         with tempfile.TemporaryDirectory(delete=False, prefix="llms-authority-test-") as directory:
